@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ghost-popup-js — local preview</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2em 1.5em;
+    line-height: 1.55;
+    color: #1a1a1a;
+  }
+  h1 { margin-top: 0; }
+  .controls {
+    background: #f4f4f4;
+    border-radius: 8px;
+    padding: 1em 1.2em;
+    margin-bottom: 2em;
+    border: 1px solid #e0e0e0;
+  }
+  .controls h3 { margin: 0 0 0.6em; font-size: 1em; text-transform: uppercase; letter-spacing: 0.04em; color: #555; }
+  .controls button {
+    margin: 0.2em 0.4em 0.2em 0;
+    padding: 0.5em 0.9em;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.95em;
+  }
+  .controls button:hover { background: #fafafa; border-color: #999; }
+  select { padding: 0.4em 0.6em; border: 1px solid #ccc; border-radius: 4px; }
+  .events {
+    margin-top: 1em;
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 0.85em;
+    background: #1a1a1a;
+    color: #c4ffc4;
+    padding: 0.8em 1em;
+    border-radius: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .events .ts { color: #888; }
+  .filler { margin: 3em 0; padding: 2em; background: #f8f8f8; border-radius: 6px; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #0a0a0a; color: #f0f0f0; }
+    .controls { background: #1a1a1a; border-color: #2a2a2a; }
+    .controls button { background: #2a2a2a; color: #f0f0f0; border-color: #444; }
+    .controls button:hover { background: #333; }
+    .controls h3 { color: #aaa; }
+    .filler { background: #1a1a1a; }
+  }
+</style>
+</head>
+<body>
+
+<h1>ghost-popup-js — local preview</h1>
+
+<p>This page loads <code>ghost-popup.js</code> from the same directory.
+Open it with <code>open preview.html</code> (macOS) or just double-click in a file browser.
+Edit <code>ghost-popup.js</code> and refresh to see changes.</p>
+
+<div class="controls">
+  <h3>Site profile</h3>
+  <select id="profile">
+    <option value="cardsftw">CardsFTW</option>
+    <option value="productftw">ProductFTW</option>
+    <option value="matthewgoldman">Matthew Goldman</option>
+  </select>
+  <button id="apply-profile">Apply &amp; reload library</button>
+</div>
+
+<div class="controls">
+  <h3>Controls</h3>
+  <button id="show-now">Show popup now</button>
+  <button id="reset-dismiss">Reset dismiss state</button>
+  <button id="toggle-member">Toggle member state (currently: <span id="member-state">anon</span>)</button>
+  <button id="clear-events">Clear event log</button>
+</div>
+
+<div class="controls">
+  <h3>Live event log</h3>
+  <div id="events" class="events">(no events yet)</div>
+</div>
+
+<h2>Filler content for scroll testing</h2>
+<p>Scroll down 30% to test the scroll trigger. The page is intentionally long. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+<div class="filler">Filler block 1 of 6</div>
+<div class="filler">Filler block 2 of 6</div>
+<div class="filler">Filler block 3 of 6</div>
+<div class="filler">Filler block 4 of 6</div>
+<div class="filler">Filler block 5 of 6</div>
+<div class="filler">Filler block 6 of 6 — you should be past 30% scroll by now.</div>
+
+<script>
+// ----------------------------------------------------------------------
+// Per-site configurations to preview. Edit these to test copy variants.
+// ----------------------------------------------------------------------
+var PROFILES = {
+  cardsftw: {
+    siteName: "CardsFTW",
+    siteUrl:  "https://www.cardsftw.com",
+    logoUrl:  "https://www.cardsftw.com/content/images/2025/04/cftwlogo.png",
+    buttonColor: "#F9A60D",
+    headline: "Weekly insights on the card industry",
+    description: "Analysis from operators who've built card programs at Apto, Bankrate, and Wallaby.",
+    // Aggressive triggers for testing — show after 1s + on any scroll
+    triggers: { timeSeconds: 1, scrollPct: 5, exitIntent: true },
+  },
+  productftw: {
+    siteName: "ProductFTW",
+    siteUrl:  "https://www.productftw.com",
+    logoUrl:  "https://www.productftw.com/content/images/2025/04/pftwicon-1.png",
+    buttonColor: "#B81D23",
+    headline: "Real product-management advice, with a fintech focus",
+    description: "Weekly writing from operators who've shipped fintech products. Sent every Thursday.",
+    triggers: { timeSeconds: 1, scrollPct: 5, exitIntent: true },
+  },
+  matthewgoldman: {
+    siteName: "Matthew Goldman",
+    siteUrl:  "https://www.matthewgoldman.com",
+    logoUrl:  "https://www.matthewgoldman.com/content/images/size/w256h256/2018/01/m-200.png",
+    buttonColor: "#eb451b",
+    headline: "Notes from a fintech founder + CPO",
+    description: "Occasional writing on product, fundraising, and startup operations.",
+    triggers: { timeSeconds: 1, scrollPct: 5, exitIntent: true },
+  },
+};
+
+// ----------------------------------------------------------------------
+// Mock analytics — surfaces popup events in the on-page log so you don't
+// need DevTools open to see them firing.
+// ----------------------------------------------------------------------
+var eventsEl = document.getElementById('events');
+function logEvent(name, props) {
+  if (eventsEl.textContent === '(no events yet)') eventsEl.textContent = '';
+  var ts = new Date().toLocaleTimeString();
+  var line = document.createElement('div');
+  var tsEl = document.createElement('span');
+  tsEl.className = 'ts';
+  tsEl.textContent = ts + '  ';
+  line.appendChild(tsEl);
+  line.appendChild(document.createTextNode(
+    name + (props && Object.keys(props).length ? '  ' + JSON.stringify(props) : '')
+  ));
+  eventsEl.appendChild(line);
+  eventsEl.scrollTop = eventsEl.scrollHeight;
+}
+window.gtag = function (verb, name, props) {
+  if (verb === 'event') logEvent('gtag:' + name, props);
+};
+window.plausible = function (name, opts) {
+  logEvent('plausible:' + name, (opts && opts.props) || {});
+};
+
+// ----------------------------------------------------------------------
+// Wire up the controls
+// ----------------------------------------------------------------------
+function loadLibrary() {
+  // Force a fresh load so config changes take effect on every "Apply"
+  var existing = document.querySelector('script[data-popup-lib]');
+  if (existing) existing.remove();
+  var existingPopup = document.getElementById('ghost-popup');
+  if (existingPopup) existingPopup.remove();
+  var existingStyle = document.querySelector('style[data-ghost-popup]');
+  if (existingStyle) existingStyle.remove();
+
+  var s = document.createElement('script');
+  s.src = 'ghost-popup.js?t=' + Date.now();   // cache-bust
+  s.setAttribute('data-popup-lib', '');
+  document.body.appendChild(s);
+}
+
+function applyProfile() {
+  var sel = document.getElementById('profile').value;
+  window.POPUP_CONFIG = PROFILES[sel];
+  // Reset dismiss state so the popup actually shows
+  try { localStorage.removeItem('ghostPopupClosed'); } catch (e) {}
+  loadLibrary();
+  logEvent('preview', { action: 'apply-profile', site: sel });
+}
+
+document.getElementById('apply-profile').addEventListener('click', applyProfile);
+
+document.getElementById('show-now').addEventListener('click', function () {
+  try { localStorage.removeItem('ghostPopupClosed'); } catch (e) {}
+  // The library guards on the dismiss timestamp and the member state, but
+  // since show() isn't exported we just simulate the most reliable trigger
+  // (exit intent via mouseleave with clientY<0).
+  var ev = new MouseEvent('mouseleave', { clientX: 100, clientY: -1, bubbles: true });
+  document.dispatchEvent(ev);
+});
+
+document.getElementById('reset-dismiss').addEventListener('click', function () {
+  try { localStorage.removeItem('ghostPopupClosed'); } catch (e) {}
+  logEvent('preview', { action: 'dismiss-state-cleared' });
+});
+
+document.getElementById('toggle-member').addEventListener('click', function () {
+  document.body.classList.toggle('is-member');
+  var on = document.body.classList.contains('is-member');
+  document.getElementById('member-state').textContent = on ? 'member' : 'anon';
+  logEvent('preview', { action: 'member-toggled', is_member: on });
+});
+
+document.getElementById('clear-events').addEventListener('click', function () {
+  eventsEl.textContent = '(no events yet)';
+});
+
+// Initial load — start with whatever's selected
+applyProfile();
+</script>
+
+</body>
+</html>
