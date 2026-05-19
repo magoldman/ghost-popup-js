@@ -26,10 +26,10 @@ BEHAVIOR:
 <script>
 // === CONFIG START ===
 const POPUP_CONFIG = {
-  siteName: "CardsFTW",
-  siteUrl: "https://cardsftw.com",
-  logoUrl: "https://www.cardsftw.com/content/images/2025/04/cftwlogo.png",
-  portalLink: "/#/portal/signup/?utm_source=popup&utm_medium=ghost&utm_campaign=subscribe_popup",
+  siteName: "Your Site Name",
+  siteUrl: "https://yoursite.com",
+  logoUrl: "https://yoursite.com/path/to/logo.png",
+  portalLink: "/?utm_source=popup&utm_medium=ghost&utm_campaign=subscribe_popup#/portal/signup",
   buttonColor: "#F9A60D",
   xIcon: "https://abs.twimg.com/favicons/twitter.3.ico", // Consider self-hosting
   linkedinIcon: "https://static.licdn.com/aero-v1/sc/h/al2o9zrvru7aqj8e1x2rzsrca" // Consider self-hosting
@@ -38,7 +38,7 @@ const POPUP_CONFIG = {
 </script>
 
 <style>
-#cards-popup {
+#ghost-popup {
   position: fixed;
   top: 50%;
   left: 50%;
@@ -58,18 +58,18 @@ const POPUP_CONFIG = {
   opacity: 0;
   transition: opacity 0.4s ease-in-out;
 }
-#cards-popup.show {
+#ghost-popup.show {
   display: block;
   opacity: 1;
 }
-#cards-popup .logo {
+#ghost-popup .logo {
   position: absolute;
   top: 12px;
   left: 12px;
   width: 40px;
   height: auto;
 }
-#cards-popup h2 {
+#ghost-popup h2 {
   font-size: 1.4em;
   margin: 0 0 0.5em;
   padding-left: 52px;
@@ -78,12 +78,12 @@ const POPUP_CONFIG = {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-#cards-popup p {
+#ghost-popup p {
   text-align: center;
   font-size: 1em;
   margin-bottom: 1em;
 }
-#cards-popup button {
+#ghost-popup button {
   margin-top: 1em;
   padding: 0.5em 1em;
   border: none;
@@ -95,17 +95,17 @@ const POPUP_CONFIG = {
   width: 100%;
   box-sizing: border-box;
 }
-#cards-popup a {
+#ghost-popup a {
   text-decoration: none;
 }
-#cards-popup .share-icons {
+#ghost-popup .share-icons {
   display: flex;
   justify-content: center;
   gap: 1em;
   margin-top: 1em;
   flex-wrap: wrap;
 }
-#cards-popup .share-icon {
+#ghost-popup .share-icon {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -115,7 +115,7 @@ const POPUP_CONFIG = {
   width: 64px;
   margin-bottom: 0.5em;
 }
-#cards-popup .share-icon img {
+#ghost-popup .share-icon img {
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -125,31 +125,31 @@ const POPUP_CONFIG = {
   object-fit: contain;
 }
 @media (max-width: 480px) {
-  #cards-popup {
+  #ghost-popup {
     padding: 2em 1em;
     max-width: 90%;
   }
-  #cards-popup h2 {
+  #ghost-popup h2 {
     font-size: 1.3em;
     padding-left: 0;
     text-align: center;
     white-space: normal;
   }
-  #cards-popup .logo {
+  #ghost-popup .logo {
     position: static;
     display: block;
     margin: 0 auto 1em;
   }
-  #cards-popup .share-icons {
+  #ghost-popup .share-icons {
     gap: 0.5em;
   }
-  #cards-popup .share-icon {
+  #ghost-popup .share-icon {
     width: 48px;
   }
 }
 </style>
 
-<div id="cards-popup">
+<div id="ghost-popup">
   <img class="logo" id="popup-logo" alt="Site Logo">
   <h2 id="popup-heading"></h2>
   <p>Subscribe today or share this post</p>
@@ -170,7 +170,7 @@ const POPUP_CONFIG = {
 
 <script>
 (function() {
-  const popup = document.getElementById('cards-popup');
+  const popup = document.getElementById('ghost-popup');
   const logo = document.getElementById('popup-logo');
   const heading = document.getElementById('popup-heading');
   const form = document.getElementById('popup-form');
@@ -191,7 +191,7 @@ const POPUP_CONFIG = {
 
   let shown = false;
   function showPopup() {
-    if (!shown && !localStorage.getItem('cardsPopupClosed')) {
+    if (!shown && !localStorage.getItem('ghostPopupClosed')) {
       if (!window.member) {
         popup.classList.add('show');
         shown = true;
@@ -211,7 +211,7 @@ const POPUP_CONFIG = {
           document.addEventListener('click', function outsideClickHandler(e) {
             if (!popup.contains(e.target)) {
               popup.classList.remove('show');
-              localStorage.setItem('cardsPopupClosed', 'true');
+              localStorage.setItem('ghostPopupClosed', 'true');
               document.removeEventListener('click', outsideClickHandler);
             }
           });
