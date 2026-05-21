@@ -1,5 +1,5 @@
 /*!
- * ghost-popup-js v2.0.0
+ * ghost-popup-js v2.0.1
  * Subscribe + share popup for Ghost blogs. MIT licensed.
  * https://github.com/magoldman/ghost-popup-js
  *
@@ -13,13 +13,13 @@
  *     buttonColor: "#F9A60D"
  *   };
  *   </script>
- *   <script src="https://cdn.jsdelivr.net/gh/magoldman/ghost-popup-js@v2.0.0/ghost-popup.js" defer></script>
+ *   <script src="https://cdn.jsdelivr.net/gh/magoldman/ghost-popup-js@v2.0.1/ghost-popup.js" defer></script>
  *
  * Paste this in Ghost Admin → Settings → Code Injection → Site Footer.
  *
- * Alternate install: paste this file's contents directly inside a single
- * <script> tag, after a <script> that sets window.POPUP_CONFIG. Works the
- * same way; just heavier on initial HTML payload.
+ * v2.0.1: position now defaults to 'bottom-right' (slide-in corner toast).
+ * Center mode now has a dimmed backdrop. Override via POPUP_CONFIG.position:
+ *   'bottom-right' (default) | 'bottom-left' | 'center'
  *
  * Load-bearing detail (don't regress): POPUP_CONFIG.portalLink MUST keep
  * UTM params BEFORE the # fragment. Ghost Portal opens off the
@@ -43,6 +43,7 @@
     headline: null,        // null → "Subscribe to <siteName>"
     description: null,     // null → "Subscribe today or share this post"
     buttonLabel: 'Subscribe',
+    position: 'bottom-right', // 'bottom-right' | 'bottom-left' | 'center'
     // Third-party icon hotlinks. Consider self-hosting — these URLs can rot.
     xIcon:        'https://abs.twimg.com/favicons/twitter.3.ico',
     linkedinIcon: 'https://static.licdn.com/aero-v1/sc/h/al2o9zrvru7aqj8e1x2rzsrca',
@@ -74,6 +75,9 @@
     return out;
   }
   var cfg = mergeDeep(DEFAULTS, window.POPUP_CONFIG || {});
+  var validPositions = { 'bottom-right': 1, 'bottom-left': 1, 'center': 1 };
+  if (!validPositions[cfg.position]) cfg.position = 'bottom-right';
+  var isModal = cfg.position === 'center';
 
   // ---------------------------------------------------------------------
   // Helpers
@@ -127,13 +131,37 @@
   // ---------------------------------------------------------------------
   function injectStyles() {
     var css =
-      '#ghost-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);' +
-      'background:#fdfdfd;border:1px solid #e5e5e5;padding:2em 1.5em;' +
-      'box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:9999;max-width:360px;' +
-      'width:90%;font-family:"Helvetica Neue",sans-serif;display:none;' +
-      'border-radius:8px;box-sizing:border-box;text-align:center;opacity:0;' +
-      'transition:opacity 0.4s ease-in-out}' +
+      // Base popup card — position-class controls placement + transform
+      '#ghost-popup{position:fixed;background:#fdfdfd;border:1px solid #e5e5e5;' +
+      'padding:2em 1.5em;box-shadow:0 4px 24px rgba(0,0,0,0.18);z-index:9999;' +
+      'max-width:360px;width:90%;font-family:"Helvetica Neue",sans-serif;' +
+      'display:none;border-radius:8px;box-sizing:border-box;text-align:center;' +
+      'opacity:0;transition:opacity 0.4s ease-in-out,transform 0.4s ease-in-out}' +
+
+      // Center (modal-style)
+      '#ghost-popup.pos-center{top:50%;left:50%;' +
+        'transform:translate(-50%,-50%) scale(0.96)}' +
+      '#ghost-popup.pos-center.show{transform:translate(-50%,-50%) scale(1)}' +
+
+      // Bottom-right toast — stacked above Ghost native Subscribe button (~16px+56px)
+      '#ghost-popup.pos-bottom-right{right:16px;bottom:88px;left:auto;top:auto;' +
+        'transform:translateX(24px)}' +
+      '#ghost-popup.pos-bottom-right.show{transform:translateX(0)}' +
+
+      // Bottom-left toast — symmetric, doesn't fight Ghost native Subscribe
+      '#ghost-popup.pos-bottom-left{left:16px;bottom:24px;right:auto;top:auto;' +
+        'transform:translateX(-24px)}' +
+      '#ghost-popup.pos-bottom-left.show{transform:translateX(0)}' +
+
       '#ghost-popup.show{display:block;opacity:1}' +
+
+      // Backdrop — modal mode only
+      '#ghost-popup-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);' +
+        'z-index:9998;opacity:0;display:none;' +
+        'transition:opacity 0.4s ease-in-out}' +
+      '#ghost-popup-backdrop.show{display:block;opacity:1}' +
+
+      // Internal layout
       '#ghost-popup .ghost-popup-close{position:absolute;top:8px;right:12px;' +
       'background:transparent;border:0;cursor:pointer;font-size:24px;' +
       'line-height:1;color:#888;padding:4px 8px;border-radius:4px}' +
@@ -151,10 +179,18 @@
       'text-decoration:none;color:#333;font-size:12px;width:64px;margin-bottom:0.5em}' +
       '#ghost-popup .share-icon img{width:36px;height:36px;border-radius:50%;' +
       'background:#eee;padding:6px;margin-bottom:4px;object-fit:contain}' +
-      '@media (max-width:480px){#ghost-popup{padding:2em 1em;max-width:90%}' +
+
+      // Mobile — corner toasts become a full-width strip pinned to the bottom
+      '@media (max-width:480px){#ghost-popup{padding:2em 1em;max-width:none;width:auto}' +
+      '#ghost-popup.pos-bottom-right,#ghost-popup.pos-bottom-left{' +
+        'left:8px;right:8px;bottom:16px;transform:translateY(20px)}' +
+      '#ghost-popup.pos-bottom-right.show,#ghost-popup.pos-bottom-left.show{transform:translateY(0)}' +
+      '#ghost-popup.pos-center{width:90%}' +
       '#ghost-popup h2{font-size:1.3em;padding-left:0;text-align:center;white-space:normal}' +
       '#ghost-popup .logo{position:static;display:block;margin:0 auto 1em}' +
       '#ghost-popup .share-icons{gap:0.5em}#ghost-popup .share-icon{width:48px}}' +
+
+      // Dark mode
       '@media (prefers-color-scheme:dark){#ghost-popup{background:#1a1a1a;border-color:#2a2a2a;' +
       'box-shadow:0 4px 24px rgba(0,0,0,0.6);color:#f0f0f0}' +
       '#ghost-popup h2{color:#f0f0f0}#ghost-popup p,#ghost-popup .share-icon{color:#c4c4c4}' +
@@ -169,8 +205,10 @@
   function build() {
     var root = document.createElement('div');
     root.id = 'ghost-popup';
+    root.className = 'pos-' + cfg.position;
     root.setAttribute('role', 'dialog');
-    root.setAttribute('aria-modal', 'false'); // not modal — page remains interactive
+    // Center+backdrop is modal-like; corner toast leaves page interactive.
+    root.setAttribute('aria-modal', isModal ? 'true' : 'false');
     root.setAttribute('aria-labelledby', 'ghost-popup-headline');
 
     var closeBtn = document.createElement('button');
@@ -247,7 +285,7 @@
     // Event wiring — exposes a real conversion funnel:
     //   popup_shown → popup_subscribe_click → (Portal arrival, via utm_source=popup)
     //                ↘ popup_share_click  { platform: x | linkedin }
-    //                ↘ popup_dismissed    { method: close_button | outside_click | escape_key }
+    //                ↘ popup_dismissed    { method: close_button | backdrop_click | escape_key }
     subBtn.addEventListener('click', function () { fire('popup_subscribe_click'); });
     xLink.addEventListener('click',  function () { fire('popup_share_click', { platform: 'x' }); });
     liLink.addEventListener('click', function () { fire('popup_share_click', { platform: 'linkedin' }); });
@@ -256,22 +294,35 @@
     return root;
   }
 
+  function buildBackdrop() {
+    var b = document.createElement('div');
+    b.id = 'ghost-popup-backdrop';
+    b.addEventListener('click', function () { dismiss('backdrop_click'); });
+    document.body.appendChild(b);
+    return b;
+  }
+
   // ---------------------------------------------------------------------
   // Show / dismiss
   // ---------------------------------------------------------------------
   var popupEl = null;
+  var backdropEl = null;
   var shown = false;
 
   function show() {
     if (shown || wasRecentlyDismissed() || isLoggedInMember()) return;
     if (!popupEl) popupEl = build();
+    if (isModal && !backdropEl) backdropEl = buildBackdrop();
+    if (backdropEl) backdropEl.classList.add('show');
     popupEl.classList.add('show');
     shown = true;
     fire('popup_shown');
 
-    // Defer outside-click + Escape so the triggering click doesn't dismiss
+    // Corner toasts: leave page interactive. Center modal: backdrop click +
+    // Escape dismiss. Escape is wired in both modes; outside-click is only
+    // wired via the backdrop (so reading-clicks on the page don't kill the
+    // corner toast accidentally).
     setTimeout(function () {
-      document.addEventListener('click', outsideClickHandler, true);
       document.addEventListener('keydown', keydownHandler);
     }, 50);
   }
@@ -279,15 +330,11 @@
   function dismiss(method) {
     if (!popupEl || !shown) return;
     popupEl.classList.remove('show');
+    if (backdropEl) backdropEl.classList.remove('show');
     shown = false;
     markDismissed();
     fire('popup_dismissed', { method: method || 'unknown' });
-    document.removeEventListener('click', outsideClickHandler, true);
     document.removeEventListener('keydown', keydownHandler);
-  }
-
-  function outsideClickHandler(e) {
-    if (popupEl && !popupEl.contains(e.target)) dismiss('outside_click');
   }
 
   function keydownHandler(e) {

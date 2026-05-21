@@ -15,10 +15,10 @@ window.POPUP_CONFIG = {
   buttonColor: "#F9A60D"
 };
 </script>
-<script src="https://cdn.jsdelivr.net/gh/magoldman/ghost-popup-js@v2.0.0/ghost-popup.js" defer></script>
+<script src="https://cdn.jsdelivr.net/gh/magoldman/ghost-popup-js@v2.0.1/ghost-popup.js" defer></script>
 ```
 
-jsdelivr serves the file directly from this repo's tagged release. Pin to a version (`@v2.0.0`) so future changes don't surprise your live site. To upgrade, bump the version.
+jsdelivr serves the file directly from this repo's tagged release. Pin to a version (`@v2.0.1`) so future changes don't surprise your live site. To upgrade, bump the version.
 
 ## Install (inline)
 
@@ -37,6 +37,7 @@ All fields are optional except `siteName`, `siteUrl`, and `logoUrl`. Defaults sh
 | `headline` | `null` → `"Subscribe to <siteName>"` | Heading text |
 | `description` | `null` → `"Subscribe today or share this post"` | Body text |
 | `buttonLabel` | `"Subscribe"` | Subscribe button label |
+| `position` | `"bottom-right"` | `"bottom-right"` \| `"bottom-left"` \| `"center"`. Corner positions render as a slide-in toast and leave the page interactive. Center mode renders a modal with a dimmed backdrop. |
 | `shareXText` | `null` → `"Check out <siteName>!"` | Pre-filled text on the X share button |
 | `xIcon` | hotlinked from twitter.com | Consider self-hosting |
 | `linkedinIcon` | hotlinked from linkedin.com | Consider self-hosting |
@@ -51,12 +52,13 @@ All fields are optional except `siteName`, `siteUrl`, and `logoUrl`. Defaults sh
 
 - Shown when *any* enabled trigger fires.
 - Hidden from logged-in Ghost members (checks `body.is-member`, `ghost-members-ssr` cookie, and `window.ghost.member`).
-- Dismissable via × button, click outside, or Escape key. Dismissal persists in localStorage for `dismissExpiryDays` days.
+- Default position is `bottom-right` — slide-in corner toast that leaves the page interactive. Stacks ~88px above the viewport bottom so it doesn't collide with Ghost's native floating Subscribe button. `bottom-left` is symmetric (good if your theme has bottom-right widgets). `center` renders as a modal with a dimmed backdrop; click the backdrop to dismiss.
+- Dismissable via × button, Escape key, or — in `center` mode — clicking the backdrop. Dismissal persists in localStorage for `dismissExpiryDays` days.
 - Fires analytics events to `gtag` and `plausible` if either is loaded on the page:
   - `popup_shown` — when popup first appears
   - `popup_subscribe_click` — Subscribe button clicked
   - `popup_share_click` `{ platform: "x" | "linkedin" }` — share button clicked
-  - `popup_dismissed` `{ method: "close_button" | "outside_click" | "escape_key" }`
+  - `popup_dismissed` `{ method: "close_button" | "backdrop_click" | "escape_key" }`
 
 ## Why UTM params go before the `#` in `portalLink`
 
