@@ -43,7 +43,19 @@ Ghost Portal opens off the `#/portal/signup` fragment, but analytics tools (Tiny
   - `popup_shown`
   - `popup_subscribe_click`
   - `popup_share_click { platform: "x" | "linkedin" }`
-  - `popup_dismissed { method: "close_button" | "outside_click" | "escape_key" }`
+  - `popup_dismissed { method: "close_button" | "backdrop_click" | "escape_key" }` *(backdrop_click replaced outside_click in v2.0.1; corner-toast modes don't dismiss on outside click anymore)*
+
+## Subscribe-click tracking — v2.0.2 fix
+
+v2.0.x prior used `<form action><button type=submit>`. Clicking the button fired the `popup_subscribe_click` gtag/Plausible event AND submitted the form (navigated to `/portal/signup`) in the same tick. gtag's beacon often hadn't flushed before page unload, so the event was lost in transit. We saw this in production: 1,263 `popup_shown` events across 3 sites in 7 days, only 1 `popup_subscribe_click`. Actual click rate was being under-counted by ~99%.
+
+v2.0.2 fixes by:
+1. Replacing the form with `<a href>` so we own the click semantics.
+2. Calling `e.preventDefault()` to suppress default navigation.
+3. Firing the event with `event_callback` (gtag) and `callback` (Plausible). Navigation happens from whichever callback fires first.
+4. `setTimeout(go, 500)` as a belt-and-suspenders fallback in case neither analytics tool is loaded OR the callback never fires (ad-blocker, network failure, etc.).
+
+The share buttons (X, LinkedIn) use `target="_blank"`, which opens a new window without unloading the current page. Their events flush normally; no fix needed for shares.
 
 ## DOM + storage identifiers
 
