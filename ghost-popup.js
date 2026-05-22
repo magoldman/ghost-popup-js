@@ -1,7 +1,19 @@
 /*!
- * ghost-popup-js v2.0.1
+ * ghost-popup-js v2.0.2
  * Subscribe + share popup for Ghost blogs. MIT licensed.
  * https://github.com/magoldman/ghost-popup-js
+ *
+ * v2.0.2: fixes the subscribe-click tracking dead zone. v2.0.x prior used
+ * <form action> + <button type=submit>; clicking the button fired the
+ * popup_subscribe_click gtag/plausible event AND navigated to /portal/signup
+ * in the same tick. GA4's gtag often hadn't flushed the beacon before the
+ * page unloaded, so the event was lost. Result: 1,263 popup_shown across 3
+ * sites in 7 days, only 1 popup_subscribe_click. The actual click rate was
+ * not 0.08% — it was just under-counted by ~99%.
+ *
+ * Fix: replace the form with an <a href>, intercept the click, fire the
+ * event with event_callback + Plausible callback, navigate from the
+ * callback (with a 500ms timeout fallback in case the callback never fires).
  *
  * Install (CDN, recommended):
  *
@@ -13,7 +25,7 @@
  *     buttonColor: "#F9A60D"
  *   };
  *   </script>
- *   <script src="https://cdn.jsdelivr.net/gh/magoldman/ghost-popup-js@v2.0.1/ghost-popup.js" defer></script>
+ *   <script src="https://cdn.jsdelivr.net/gh/magoldman/ghost-popup-js@v2.0.2/ghost-popup.js" defer></script>
  *
  * Paste this in Ghost Admin → Settings → Code Injection → Site Footer.
  *
@@ -126,6 +138,45 @@
     }
   }
 
+  // Fire an event AND navigate, but make sure the beacon flushes first.
+  // gtag returns synchronously but the underlying network call may not have
+  // sent before window.location changes — and a partial beacon gets dropped
+  // by the browser on unload. event_callback (gtag) and callback (Plausible)
+  // both fire when the beacon is queued; we navigate from whichever fires
+  // first. 500ms timeout fallback in case neither analytics tool is loaded
+  // OR the callback never fires.
+  function fireAndNavigate(eventName, url, props) {
+    var navigated = false;
+    function go() {
+      if (navigated) return;
+      navigated = true;
+      window.location.href = url;
+    }
+
+    var fired = false;
+    if (window.gtag) {
+      fired = true;
+      try {
+        window.gtag('event', eventName, Object.assign({
+          event_category: 'popup',
+          event_callback: go,
+          event_timeout: 500,
+        }, props || {}));
+      } catch (e) {}
+    }
+    if (window.plausible) {
+      fired = true;
+      try {
+        window.plausible(eventName, { props: props || {}, callback: go });
+      } catch (e) {}
+    }
+
+    // Belt-and-suspenders: fire after 500ms regardless. Covers (a) neither
+    // analytics tool loaded, and (b) analytics tool present but callback
+    // never fires (network blocked, ad-blocker, etc.).
+    setTimeout(go, fired ? 500 : 0);
+  }
+
   // ---------------------------------------------------------------------
   // DOM
   // ---------------------------------------------------------------------
@@ -172,7 +223,10 @@
       'text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
       '#ghost-popup p{text-align:center;font-size:1em;margin-bottom:1em}' +
       '#ghost-popup .subscribe-btn{margin-top:1em;padding:0.5em 1em;border:none;' +
-      'color:#fff;cursor:pointer;font-weight:bold;border-radius:4px;width:100%;box-sizing:border-box}' +
+      'color:#fff;cursor:pointer;font-weight:bold;border-radius:4px;width:100%;box-sizing:border-box;' +
+      'display:block;text-align:center;text-decoration:none;font-family:inherit;font-size:inherit}' +
+      '#ghost-popup .subscribe-btn:hover{color:#fff;text-decoration:none}' +
+      '#ghost-popup .subscribe-btn:focus-visible{outline:2px solid #4a90e2;outline-offset:2px}' +
       '#ghost-popup a{text-decoration:none}' +
       '#ghost-popup .share-icons{display:flex;justify-content:center;gap:1em;margin-top:1em;flex-wrap:wrap}' +
       '#ghost-popup .share-icon{display:flex;flex-direction:column;align-items:center;' +
@@ -235,16 +289,17 @@
     p.textContent = cfg.description || 'Subscribe today or share this post';
     root.appendChild(p);
 
-    var form = document.createElement('form');
-    form.action = cfg.portalLink;
-    form.method = 'GET';
-    var subBtn = document.createElement('button');
-    subBtn.type = 'submit';
+    // Anchor (not <form><button type=submit>) so we can intercept the click
+    // and ensure the gtag/Plausible beacon flushes before navigation. See
+    // fireAndNavigate(). Keep href set so JS-disabled clients still reach
+    // Portal (graceful degradation).
+    var subBtn = document.createElement('a');
     subBtn.className = 'subscribe-btn';
     subBtn.style.background = cfg.buttonColor;
+    subBtn.href = cfg.portalLink;
+    subBtn.setAttribute('role', 'button');
     subBtn.textContent = cfg.buttonLabel;
-    form.appendChild(subBtn);
-    root.appendChild(form);
+    root.appendChild(subBtn);
 
     var shareDiv = document.createElement('div');
     shareDiv.className = 'share-icons';
@@ -286,7 +341,10 @@
     //   popup_shown → popup_subscribe_click → (Portal arrival, via utm_source=popup)
     //                ↘ popup_share_click  { platform: x | linkedin }
     //                ↘ popup_dismissed    { method: close_button | backdrop_click | escape_key }
-    subBtn.addEventListener('click', function () { fire('popup_subscribe_click'); });
+    subBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      fireAndNavigate('popup_subscribe_click', cfg.portalLink);
+    });
     xLink.addEventListener('click',  function () { fire('popup_share_click', { platform: 'x' }); });
     liLink.addEventListener('click', function () { fire('popup_share_click', { platform: 'linkedin' }); });
     closeBtn.addEventListener('click', function () { dismiss('close_button'); });

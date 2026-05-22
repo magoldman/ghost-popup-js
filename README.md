@@ -15,10 +15,10 @@ window.POPUP_CONFIG = {
   buttonColor: "#F9A60D"
 };
 </script>
-<script src="https://cdn.jsdelivr.net/gh/magoldman/ghost-popup-js@v2.0.1/ghost-popup.js" defer></script>
+<script src="https://cdn.jsdelivr.net/gh/magoldman/ghost-popup-js@v2.0.2/ghost-popup.js" defer></script>
 ```
 
-jsdelivr serves the file directly from this repo's tagged release. Pin to a version (`@v2.0.1`) so future changes don't surprise your live site. To upgrade, bump the version.
+jsdelivr serves the file directly from this repo's tagged release. Pin to a version (`@v2.0.2`) so future changes don't surprise your live site. To upgrade, bump the version.
 
 ## Install (inline)
 
