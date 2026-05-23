@@ -45,6 +45,18 @@ Ghost Portal opens off the `#/portal/signup` fragment, but analytics tools (Tiny
   - `popup_share_click { platform: "x" | "linkedin" }`
   - `popup_dismissed { method: "close_button" | "backdrop_click" | "escape_key" }` *(backdrop_click replaced outside_click in v2.0.1; corner-toast modes don't dismiss on outside click anymore)*
 
+## Social share toggle — v2.1.0
+
+`POPUP_CONFIG.social` (default `"all"`) gates the X + LinkedIn share buttons:
+- `"all"` — show both (legacy behavior, default)
+- `"linkedin"` — show only LinkedIn
+- `"x"` — show only X
+- `"none"` — skip the entire `.share-icons` block; the popup becomes a single-CTA subscribe-only modal
+
+Use case: consumer sites that decide shares are a distraction and want to focus 100% of popup intent on subscribe. The library keeps `"all"` as default so existing installs don't change behavior on a version bump; opt out by setting `social: "none"` in config.
+
+Implementation: validation + `showX`/`showLi` booleans computed up-front, then `if (showX || showLi)` wraps the whole share-row construction, with individual `if (showX) {...}` / `if (showLi) {...}` blocks inside. Event wiring is also gated (`if (xLink)`, `if (liLink)`) so we don't crash when buttons aren't rendered.
+
 ## Subscribe-click tracking — v2.0.2 fix
 
 v2.0.x prior used `<form action><button type=submit>`. Clicking the button fired the `popup_subscribe_click` gtag/Plausible event AND submitted the form (navigated to `/portal/signup`) in the same tick. gtag's beacon often hadn't flushed before page unload, so the event was lost in transit. We saw this in production: 1,263 `popup_shown` events across 3 sites in 7 days, only 1 `popup_subscribe_click`. Actual click rate was being under-counted by ~99%.

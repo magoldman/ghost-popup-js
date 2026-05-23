@@ -1,7 +1,13 @@
 /*!
- * ghost-popup-js v2.0.2
+ * ghost-popup-js v2.1.0
  * Subscribe + share popup for Ghost blogs. MIT licensed.
  * https://github.com/magoldman/ghost-popup-js
+ *
+ * v2.1.0: new `social` config option to hide one or both share buttons.
+ *   social: 'all'      — show both X and LinkedIn (default, current behavior)
+ *   social: 'linkedin' — show only LinkedIn
+ *   social: 'x'        — show only X
+ *   social: 'none'     — hide the entire share-icons row (focuses popup on subscribe CTA)
  *
  * v2.0.2: fixes the subscribe-click tracking dead zone. v2.0.x prior used
  * <form action> + <button type=submit>; clicking the button fired the
@@ -25,7 +31,7 @@
  *     buttonColor: "#F9A60D"
  *   };
  *   </script>
- *   <script src="https://cdn.jsdelivr.net/gh/magoldman/ghost-popup-js@v2.0.2/ghost-popup.js" defer></script>
+ *   <script src="https://cdn.jsdelivr.net/gh/magoldman/ghost-popup-js@v2.1.0/ghost-popup.js" defer></script>
  *
  * Paste this in Ghost Admin → Settings → Code Injection → Site Footer.
  *
@@ -56,6 +62,7 @@
     description: null,     // null → "Subscribe today or share this post"
     buttonLabel: 'Subscribe',
     position: 'bottom-right', // 'bottom-right' | 'bottom-left' | 'center'
+    social: 'all',            // 'all' | 'linkedin' | 'x' | 'none'
     // Third-party icon hotlinks. Consider self-hosting — these URLs can rot.
     xIcon:        'https://abs.twimg.com/favicons/twitter.3.ico',
     linkedinIcon: 'https://static.licdn.com/aero-v1/sc/h/al2o9zrvru7aqj8e1x2rzsrca',
@@ -90,6 +97,11 @@
   var validPositions = { 'bottom-right': 1, 'bottom-left': 1, 'center': 1 };
   if (!validPositions[cfg.position]) cfg.position = 'bottom-right';
   var isModal = cfg.position === 'center';
+
+  var validSocials = { 'all': 1, 'linkedin': 1, 'x': 1, 'none': 1 };
+  if (!validSocials[cfg.social]) cfg.social = 'all';
+  var showX  = cfg.social === 'all' || cfg.social === 'x';
+  var showLi = cfg.social === 'all' || cfg.social === 'linkedin';
 
   // ---------------------------------------------------------------------
   // Helpers
@@ -301,52 +313,62 @@
     subBtn.textContent = cfg.buttonLabel;
     root.appendChild(subBtn);
 
-    var shareDiv = document.createElement('div');
-    shareDiv.className = 'share-icons';
-    var shareText = cfg.shareXText || ('Check out ' + cfg.siteName + '!');
-    var shareUtm = 'utm_source=popup&utm_medium=ghost&utm_campaign=share_popup';
+    // Share icons — gated by cfg.social. Set 'none' to focus the popup
+    // entirely on subscribe (one CTA, no distractions). The whole
+    // .share-icons block is skipped if both showX and showLi are false.
+    var xLink = null, liLink = null;
+    if (showX || showLi) {
+      var shareDiv = document.createElement('div');
+      shareDiv.className = 'share-icons';
+      var shareText = cfg.shareXText || ('Check out ' + cfg.siteName + '!');
+      var shareUtm = 'utm_source=popup&utm_medium=ghost&utm_campaign=share_popup';
 
-    var xLink = document.createElement('a');
-    xLink.className = 'share-icon';
-    xLink.href = 'https://twitter.com/intent/tweet?text=' +
-      encodeURIComponent(shareText) + '&url=' + encodeURIComponent(cfg.siteUrl) +
-      '&' + shareUtm;
-    xLink.target = '_blank';
-    xLink.rel = 'noopener';
-    var xImg = document.createElement('img');
-    xImg.src = cfg.xIcon;
-    xImg.alt = 'X logo';
-    xLink.appendChild(xImg);
-    xLink.appendChild(document.createTextNode('Share on X'));
-    shareDiv.appendChild(xLink);
+      if (showX) {
+        xLink = document.createElement('a');
+        xLink.className = 'share-icon';
+        xLink.href = 'https://twitter.com/intent/tweet?text=' +
+          encodeURIComponent(shareText) + '&url=' + encodeURIComponent(cfg.siteUrl) +
+          '&' + shareUtm;
+        xLink.target = '_blank';
+        xLink.rel = 'noopener';
+        var xImg = document.createElement('img');
+        xImg.src = cfg.xIcon;
+        xImg.alt = 'X logo';
+        xLink.appendChild(xImg);
+        xLink.appendChild(document.createTextNode('Share on X'));
+        shareDiv.appendChild(xLink);
+      }
 
-    var liLink = document.createElement('a');
-    liLink.className = 'share-icon';
-    liLink.href = 'https://www.linkedin.com/shareArticle?mini=true&url=' +
-      encodeURIComponent(cfg.siteUrl) + '&' + shareUtm;
-    liLink.target = '_blank';
-    liLink.rel = 'noopener';
-    var liImg = document.createElement('img');
-    liImg.src = cfg.linkedinIcon;
-    liImg.alt = 'LinkedIn logo';
-    liLink.appendChild(liImg);
-    liLink.appendChild(document.createTextNode('Share on LinkedIn'));
-    shareDiv.appendChild(liLink);
+      if (showLi) {
+        liLink = document.createElement('a');
+        liLink.className = 'share-icon';
+        liLink.href = 'https://www.linkedin.com/shareArticle?mini=true&url=' +
+          encodeURIComponent(cfg.siteUrl) + '&' + shareUtm;
+        liLink.target = '_blank';
+        liLink.rel = 'noopener';
+        var liImg = document.createElement('img');
+        liImg.src = cfg.linkedinIcon;
+        liImg.alt = 'LinkedIn logo';
+        liLink.appendChild(liImg);
+        liLink.appendChild(document.createTextNode('Share on LinkedIn'));
+        shareDiv.appendChild(liLink);
+      }
 
-    root.appendChild(shareDiv);
+      root.appendChild(shareDiv);
+    }
 
     document.body.appendChild(root);
 
     // Event wiring — exposes a real conversion funnel:
     //   popup_shown → popup_subscribe_click → (Portal arrival, via utm_source=popup)
-    //                ↘ popup_share_click  { platform: x | linkedin }
+    //                ↘ popup_share_click  { platform: x | linkedin }    (only if social ≠ 'none')
     //                ↘ popup_dismissed    { method: close_button | backdrop_click | escape_key }
     subBtn.addEventListener('click', function (e) {
       e.preventDefault();
       fireAndNavigate('popup_subscribe_click', cfg.portalLink);
     });
-    xLink.addEventListener('click',  function () { fire('popup_share_click', { platform: 'x' }); });
-    liLink.addEventListener('click', function () { fire('popup_share_click', { platform: 'linkedin' }); });
+    if (xLink)  xLink.addEventListener('click',  function () { fire('popup_share_click', { platform: 'x' }); });
+    if (liLink) liLink.addEventListener('click', function () { fire('popup_share_click', { platform: 'linkedin' }); });
     closeBtn.addEventListener('click', function () { dismiss('close_button'); });
 
     return root;

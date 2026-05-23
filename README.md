@@ -15,10 +15,10 @@ window.POPUP_CONFIG = {
   buttonColor: "#F9A60D"
 };
 </script>
-<script src="https://cdn.jsdelivr.net/gh/magoldman/ghost-popup-js@v2.0.2/ghost-popup.js" defer></script>
+<script src="https://cdn.jsdelivr.net/gh/magoldman/ghost-popup-js@v2.1.0/ghost-popup.js" defer></script>
 ```
 
-jsdelivr serves the file directly from this repo's tagged release. Pin to a version (`@v2.0.2`) so future changes don't surprise your live site. To upgrade, bump the version.
+jsdelivr serves the file directly from this repo's tagged release. Pin to a version (`@v2.1.0`) so future changes don't surprise your live site. To upgrade, bump the version.
 
 ## Install (inline)
 
@@ -38,7 +38,8 @@ All fields are optional except `siteName`, `siteUrl`, and `logoUrl`. Defaults sh
 | `description` | `null` → `"Subscribe today or share this post"` | Body text |
 | `buttonLabel` | `"Subscribe"` | Subscribe button label |
 | `position` | `"bottom-right"` | `"bottom-right"` \| `"bottom-left"` \| `"center"`. Corner positions render as a slide-in toast and leave the page interactive. Center mode renders a modal with a dimmed backdrop. |
-| `shareXText` | `null` → `"Check out <siteName>!"` | Pre-filled text on the X share button |
+| `social` | `"all"` | `"all"` \| `"linkedin"` \| `"x"` \| `"none"`. Controls which share buttons appear. Set to `"none"` to remove the share row entirely and focus the popup on the subscribe CTA — recommended if you've decided shares are a distraction. |
+| `shareXText` | `null` → `"Check out <siteName>!"` | Pre-filled text on the X share button (only used when `social` includes X) |
 | `xIcon` | hotlinked from twitter.com | Consider self-hosting |
 | `linkedinIcon` | hotlinked from linkedin.com | Consider self-hosting |
 | `portalLink` | `/?utm_source=popup&utm_medium=ghost&utm_campaign=subscribe_popup#/portal/signup` | **Don't change unless you know about the URL-fragment caveat below.** |
